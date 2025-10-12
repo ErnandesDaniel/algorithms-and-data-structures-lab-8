@@ -12,32 +12,32 @@ int main() {
   cin >> n >> m;
 
   vector<vector<int>> graph(n + 1);
-  vector<pair<int, int>> edges;
-
   for (int i = 0; i < m; ++i) {
     int u, v;
     cin >> u >> v;
     graph[u].push_back(v);
     graph[v].push_back(u);
-    edges.emplace_back(u, v);
   }
 
   vector<int> degree(n + 1);
   for (int i = 1; i <= n; ++i) {
-    degree[i] = graph[i].size();
+    degree[i] = static_cast<int>(graph[i].size());
   }
 
   vector<bool> removed(n + 1, false);
-  int current_edge_count = m;
+  long long current_edge_count = m;  // используем long long для безопасности
   vector<int> best_subset;
-  double best_density = -1.0;
+  long long best_edges = -1;
+  int best_vertices = 1;
 
   for (int step = 0; step < n; ++step) {
     int current_size = n - step;
-    double density = static_cast<double>(current_edge_count) / current_size;
 
-    if (density > best_density) {
-      best_density = density;
+    // Сравниваем: current_edge_count / current_size > best_edges / best_vertices
+    // ⇨ current_edge_count * best_vertices > best_edges * current_size
+    if (best_edges == -1 || current_edge_count * best_vertices > best_edges * current_size) {
+      best_edges = current_edge_count;
+      best_vertices = current_size;
       best_subset.clear();
       for (int i = 1; i <= n; ++i) {
         if (!removed[i]) {
@@ -46,7 +46,6 @@ int main() {
       }
     }
 
-    // Найти вершину с минимальной степенью среди оставшихся
     int min_degree = n + 1;
     int to_remove = -1;
     for (int i = 1; i <= n; ++i) {
@@ -59,11 +58,9 @@ int main() {
     if (to_remove == -1)
       break;
 
-    // Удаляем вершину
     removed[to_remove] = true;
     current_edge_count -= degree[to_remove];
 
-    // Уменьшаем степень соседей
     for (int neighbor : graph[to_remove]) {
       if (!removed[neighbor]) {
         degree[neighbor]--;
@@ -71,6 +68,7 @@ int main() {
     }
   }
 
+  sort(best_subset.begin(), best_subset.end());
   cout << best_subset.size() << "\n";
   for (int v : best_subset) {
     cout << v << "\n";
