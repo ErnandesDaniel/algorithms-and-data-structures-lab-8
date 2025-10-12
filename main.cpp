@@ -1,7 +1,5 @@
-#include <algorithm>
 #include <iostream>
 #include <vector>
-
 using namespace std;
 
 int main() {
@@ -10,69 +8,49 @@ int main() {
 
   int n, m;
   cin >> n >> m;
-
-  vector<vector<int>> graph(n + 1);
+  vector<vector<int>> g(n + 1);
+  vector<int> deg(n + 1);
   for (int i = 0; i < m; ++i) {
     int u, v;
     cin >> u >> v;
-    graph[u].push_back(v);
-    graph[v].push_back(u);
+    g[u].push_back(v);
+    g[v].push_back(u);
+    deg[u]++;
+    deg[v]++;
   }
 
-  vector<int> degree(n + 1);
-  for (int i = 1; i <= n; ++i) {
-    degree[i] = static_cast<int>(graph[i].size());
-  }
-
-  vector<bool> removed(n + 1, false);
-  long long current_edge_count = m;  // используем long long для безопасности
-  vector<int> best_subset;
-  long long best_edges = -1;
-  int best_vertices = 1;
+  vector<bool> rm(n + 1, false);
+  int edges = m;
+  vector<int> best;
+  int best_e = -1, best_v = 1;
 
   for (int step = 0; step < n; ++step) {
-    int current_size = n - step;
-
-    // Сравниваем: current_edge_count / current_size > best_edges / best_vertices
-    // ⇨ current_edge_count * best_vertices > best_edges * current_size
-    if (best_edges == -1 || current_edge_count * best_vertices > best_edges * current_size) {
-      best_edges = current_edge_count;
-      best_vertices = current_size;
-      best_subset.clear();
-      for (int i = 1; i <= n; ++i) {
-        if (!removed[i]) {
-          best_subset.push_back(i);
-        }
-      }
+    int cur_v = n - step;
+    if (best_e == -1 || edges * best_v > best_e * cur_v) {
+      best_e = edges;
+      best_v = cur_v;
+      best.clear();
+      for (int i = 1; i <= n; ++i)
+        if (!rm[i])
+          best.push_back(i);
     }
 
-    int min_degree = n + 1;
-    int to_remove = -1;
-    for (int i = 1; i <= n; ++i) {
-      if (!removed[i] && degree[i] < min_degree) {
-        min_degree = degree[i];
-        to_remove = i;
-      }
-    }
+    int min_d = n + 1, to_rm = -1;
+    for (int i = 1; i <= n; ++i)
+      if (!rm[i] && deg[i] < min_d)
+        min_d = deg[i], to_rm = i;
 
-    if (to_remove == -1)
+    if (to_rm == -1)
       break;
-
-    removed[to_remove] = true;
-    current_edge_count -= degree[to_remove];
-
-    for (int neighbor : graph[to_remove]) {
-      if (!removed[neighbor]) {
-        degree[neighbor]--;
-      }
-    }
+    rm[to_rm] = true;
+    edges -= deg[to_rm];
+    for (int v : g[to_rm])
+      if (!rm[v])
+        deg[v]--;
   }
 
-  sort(best_subset.begin(), best_subset.end());
-  cout << best_subset.size() << "\n";
-  for (int v : best_subset) {
-    cout << v << "\n";
-  }
-
+  cout << best.size() << '\n';
+  for (int x : best)
+    cout << x << '\n';
   return 0;
 }
