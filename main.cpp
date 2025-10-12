@@ -1,94 +1,80 @@
 #include <algorithm>
 #include <iostream>
+#include <set>
 #include <vector>
+
 using namespace std;
-
-const int MAXN = 100000;
-const int LOG = 17;
-
-vector<int> adj[MAXN];
-int depth[MAXN];
-int up[MAXN][LOG];
-
-void dfs(int v, int parent) {
-  depth[v] = (parent == -1 ? 0 : depth[parent] + 1);
-  up[v][0] = parent;
-
-  for (int i = 1; i < LOG; ++i) {
-    if (up[v][i - 1] != -1) {
-      up[v][i] = up[up[v][i - 1]][i - 1];
-    } else {
-      up[v][i] = -1;
-    }
-  }
-
-  for (int to : adj[v]) {
-    if (to != parent) {
-      dfs(to, v);
-    }
-  }
-}
-
-int lca(int u, int v) {
-  if (depth[u] < depth[v])
-    swap(u, v);
-
-  int diff = depth[u] - depth[v];
-  for (int i = 0; i < LOG; ++i) {
-    if (diff & (1 << i)) {
-      u = up[u][i];
-    }
-  }
-
-  if (u == v)
-    return u;
-
-  for (int i = LOG - 1; i >= 0; --i) {
-    if (up[u][i] != up[v][i]) {
-      u = up[u][i];
-      v = up[v][i];
-    }
-  }
-  return up[u][0];
-}
-
-int dist(int u, int v) {
-  int w = lca(u, v);
-  return depth[u] + depth[v] - 2 * depth[w];
-}
 
 int main() {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
 
-  int N;
-  cin >> N;
+  int n, m;
+  cin >> n >> m;
 
-  for (int i = 0; i < N; ++i) {
-    fill(up[i], up[i] + LOG, -1);
-  }
+  vector<vector<int>> graph(n + 1);
+  vector<pair<int, int>> edges;
 
-  for (int i = 0; i < N - 1; ++i) {
+  for (int i = 0; i < m; ++i) {
     int u, v;
     cin >> u >> v;
-    adj[u].push_back(v);
-    adj[v].push_back(u);
+    graph[u].push_back(v);
+    graph[v].push_back(u);
+    edges.emplace_back(u, v);
   }
 
-  dfs(0, -1);  // корень — 0
+  vector<int> degree(n + 1);
+  for (int i = 1; i <= n; ++i) {
+    degree[i] = graph[i].size();
+  }
 
-  int Q;
-  cin >> Q;
+  vector<bool> removed(n + 1, false);
+  int current_edge_count = m;
+  vector<int> best_subset;
+  double best_density = -1.0;
 
-  while (Q--) {
-    int u, v, T;
-    cin >> u >> v >> T;
-    int d = dist(u, v);
-    if (d <= T) {
-      cout << "Yes\n";
-    } else {
-      cout << "No\n";
+  for (int step = 0; step < n; ++step) {
+    int current_size = n - step;
+    double density = static_cast<double>(current_edge_count) / current_size;
+
+    if (density > best_density) {
+      best_density = density;
+      best_subset.clear();
+      for (int i = 1; i <= n; ++i) {
+        if (!removed[i]) {
+          best_subset.push_back(i);
+        }
+      }
     }
+
+    // Найти вершину с минимальной степенью среди оставшихся
+    int min_degree = n + 1;
+    int to_remove = -1;
+    for (int i = 1; i <= n; ++i) {
+      if (!removed[i] && degree[i] < min_degree) {
+        min_degree = degree[i];
+        to_remove = i;
+      }
+    }
+
+    if (to_remove == -1)
+      break;
+
+    // Удаляем вершину
+    removed[to_remove] = true;
+    current_edge_count -= degree[to_remove];
+
+    // Уменьшаем степень соседей
+    for (int neighbor : graph[to_remove]) {
+      if (!removed[neighbor]) {
+        degree[neighbor]--;
+      }
+    }
+  }
+
+  cout << best_subset.size() << "\n";
+  for (int v : best_subset) {
+    cout << v << "\n";
   }
 
   return 0;
