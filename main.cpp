@@ -1,56 +1,96 @@
-#include <iostream>
-#include <vector>
-using namespace std;
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAXN 105
+
+int n, m;
+int adj[MAXN][MAXN];  // матрица смежности
+int current[MAXN];    // текущее подмножество (1 = включена)
+int best_set[MAXN];   // лучшее найденное подмножество
+int best_size = 0;
+double best_density = -1.0;
+
+// Подсчёт плотности текущего подмножества
+double compute_density(int* subset, int size) {
+  if (size == 0)
+    return 0.0;
+  int edges = 0;
+  for (int i = 1; i <= n; i++) {
+    if (!subset[i])
+      continue;
+    for (int j = i + 1; j <= n; j++) {
+      if (subset[j] && adj[i][j]) {
+        edges++;
+      }
+    }
+  }
+  return (double)edges / size;
+}
+
+// Подсчёт степени вершины внутри текущего подмножества
+int degree_in_subgraph(int v, int* subset) {
+  int deg = 0;
+  for (int u = 1; u <= n; u++) {
+    if (u != v && subset[u] && adj[v][u])
+      deg++;
+  }
+  return deg;
+}
 
 int main() {
-  ios::sync_with_stdio(false);
-  cin.tie(nullptr);
+  scanf("%d %d", &n, &m);
 
-  int n, m;
-  cin >> n >> m;
-  vector<vector<int>> g(n + 1);
-  vector<int> deg(n + 1);
-  for (int i = 0; i < m; ++i) {
-    int u, v;
-    cin >> u >> v;
-    g[u].push_back(v);
-    g[v].push_back(u);
-    deg[u]++;
-    deg[v]++;
+  // Инициализация
+  memset(adj, 0, sizeof(adj));
+  for (int i = 0; i < m; i++) {
+    int a, b;
+    scanf("%d %d", &a, &b);
+    adj[a][b] = adj[b][a] = 1;
   }
 
-  vector<bool> rm(n + 1, false);
-  int edges = m;
-  vector<int> best;
-  int best_e = -1, best_v = 1;
+  // Начинаем с полного множества
+  int subset[MAXN];
+  for (int i = 1; i <= n; i++) {
+    subset[i] = 1;
+  }
 
-  for (int step = 0; step < n; ++step) {
-    int cur_v = n - step;
-    if (best_e == -1 || edges * best_v > best_e * cur_v) {
-      best_e = edges;
-      best_v = cur_v;
-      best.clear();
-      for (int i = 1; i <= n; ++i)
-        if (!rm[i])
-          best.push_back(i);
+  int remaining = n;
+
+  // Итеративно удаляем вершины
+  while (remaining > 0) {
+    double dens = compute_density(subset, remaining);
+    if (dens > best_density) {
+      best_density = dens;
+      best_size = remaining;
+      memcpy(best_set, subset, sizeof(subset));
     }
 
-    int min_d = n + 1, to_rm = -1;
-    for (int i = 1; i <= n; ++i)
-      if (!rm[i] && deg[i] < min_d)
-        min_d = deg[i], to_rm = i;
+    // Найти вершину с минимальной степенью в текущем подграфе
+    int min_deg = n + 1;
+    int to_remove = -1;
+    for (int v = 1; v <= n; v++) {
+      if (!subset[v])
+        continue;
+      int deg = degree_in_subgraph(v, subset);
+      if (deg < min_deg || (deg == min_deg && v < to_remove)) {
+        min_deg = deg;
+        to_remove = v;
+      }
+    }
 
-    if (to_rm == -1)
-      break;
-    rm[to_rm] = true;
-    edges -= deg[to_rm];
-    for (int v : g[to_rm])
-      if (!rm[v])
-        deg[v]--;
+    // Удаляем её
+    subset[to_remove] = 0;
+    remaining--;
   }
 
-  cout << best.size() << '\n';
-  for (int x : best)
-    cout << x << '\n';
+  // Вывод результата
+  printf("%d\n", best_size);
+  for (int i = 1; i <= n; i++) {
+    if (best_set[i]) {
+      printf("%d\n", i);
+    }
+  }
+
   return 0;
 }
